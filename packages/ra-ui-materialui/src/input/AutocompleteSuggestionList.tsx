@@ -1,5 +1,8 @@
-import React, { ReactNode, FunctionComponent } from 'react';
-import { makeStyles, Paper, Popper } from '@material-ui/core';
+import * as React from 'react';
+import { ReactNode, FunctionComponent } from 'react';
+import classnames from 'classnames';
+import { Paper, Popper } from '@material-ui/core';
+import { makeStyles } from '@material-ui/core/styles';
 
 const useStyles = makeStyles(
     {
@@ -16,6 +19,7 @@ const useStyles = makeStyles(
 
 interface Props {
     children: ReactNode;
+    className?: string;
     isOpen: boolean;
     menuProps: any;
     inputEl: HTMLElement;
@@ -23,21 +27,22 @@ interface Props {
     suggestionsContainerProps?: any;
 }
 
-const AutocompleteSuggestionList: FunctionComponent<Props> = ({
-    children,
-    isOpen,
-    menuProps,
-    inputEl,
-    classes: classesOverride = undefined,
-    suggestionsContainerProps,
-}) => {
-    const classes = useStyles({ classes: classesOverride });
+const AutocompleteSuggestionList: FunctionComponent<Props> = props => {
+    const {
+        children,
+        className,
+        isOpen,
+        menuProps,
+        inputEl,
+        suggestionsContainerProps,
+    } = props;
+    const classes = useStyles(props);
 
     return (
         <Popper
             open={isOpen}
             anchorEl={inputEl}
-            className={classes.suggestionsContainer}
+            className={classnames(classes.suggestionsContainer, className)}
             modifiers={{}}
             {...suggestionsContainerProps}
         >

@@ -1,4 +1,5 @@
-import React, { FunctionComponent, useCallback } from 'react';
+import * as React from 'react';
+import { FunctionComponent, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
 import FormHelperText from '@material-ui/core/FormHelperText';
@@ -6,7 +7,7 @@ import FormGroup, { FormGroupProps } from '@material-ui/core/FormGroup';
 import Switch, { SwitchProps } from '@material-ui/core/Switch';
 import { FieldTitle, useInput, InputProps } from 'ra-core';
 
-import sanitizeRestProps from './sanitizeRestProps';
+import sanitizeInputRestProps from './sanitizeInputRestProps';
 import InputHelperText from './InputHelperText';
 import InputPropTypes from './InputPropTypes';
 
@@ -22,6 +23,7 @@ const BooleanInput: FunctionComponent<
     onChange,
     onFocus,
     options,
+    disabled,
     parse,
     resource,
     source,
@@ -54,7 +56,7 @@ const BooleanInput: FunctionComponent<
     );
 
     return (
-        <FormGroup {...sanitizeRestProps(rest)}>
+        <FormGroup {...sanitizeInputRestProps(rest)}>
             <FormControlLabel
                 control={
                     <Switch
@@ -63,6 +65,7 @@ const BooleanInput: FunctionComponent<
                         onChange={handleChange}
                         {...inputProps}
                         {...options}
+                        disabled={disabled}
                     />
                 }
                 label={
@@ -74,22 +77,22 @@ const BooleanInput: FunctionComponent<
                     />
                 }
             />
-            {(touched && error) || helperText ? (
-                <FormHelperText error={!!error}>
-                    <InputHelperText
-                        touched={touched}
-                        error={error}
-                        helperText={helperText}
-                    />
-                </FormHelperText>
-            ) : null}
+            <FormHelperText error={!!error}>
+                <InputHelperText
+                    touched={touched}
+                    error={error}
+                    helperText={helperText}
+                />
+            </FormHelperText>
         </FormGroup>
     );
 };
 
 BooleanInput.propTypes = {
     ...InputPropTypes,
+    // @ts-ignore
     options: PropTypes.shape(Switch.propTypes),
+    disabled: PropTypes.bool,
 };
 
 BooleanInput.defaultProps = {

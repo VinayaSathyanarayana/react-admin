@@ -9,13 +9,17 @@ import React, {
 } from 'react';
 import Downshift, { DownshiftProps } from 'downshift';
 import get from 'lodash/get';
-import { makeStyles, TextField } from '@material-ui/core';
+import classNames from 'classnames';
+import { TextField, InputAdornment, IconButton } from '@material-ui/core';
+import { makeStyles } from '@material-ui/core/styles';
+import ClearIcon from '@material-ui/icons/Clear';
 import { TextFieldProps } from '@material-ui/core/TextField';
 import {
     useInput,
     FieldTitle,
-    InputProps,
+    ChoicesInputProps,
     useSuggestions,
+    useTranslate,
     warning,
 } from 'ra-core';
 
@@ -90,52 +94,63 @@ interface Options {
  * @example
  * <AutocompleteInput source="author_id" options={{ color: 'secondary', InputLabelProps: { shrink: true } }} />
  */
-const AutocompleteInput: FunctionComponent<
-    InputProps<TextFieldProps & Options> & DownshiftProps<any>
-> = ({
-    allowEmpty,
-    className,
-    classes: classesOverride,
-    choices = [],
-    emptyText,
-    emptyValue,
-    format,
-    fullWidth,
-    helperText,
-    id: idOverride,
-    input: inputOverride,
-    isRequired: isRequiredOverride,
-    label,
-    limitChoicesToValue,
-    margin = 'dense',
-    matchSuggestion,
-    meta: metaOverride,
-    onBlur,
-    onChange,
-    onFocus,
-    options: {
-        suggestionsContainerProps,
-        labelProps,
-        InputProps,
-        ...options
-    } = {
-        suggestionsContainerProps: undefined,
-        labelProps: undefined,
-        InputProps: undefined,
-    },
-    optionText = 'name',
-    optionValue = 'id',
-    parse,
-    resource,
-    setFilter,
-    shouldRenderSuggestions: shouldRenderSuggestionsOverride,
-    source,
-    suggestionLimit,
-    translateChoice = true,
-    validate,
-    variant = 'filled',
-    ...rest
-}) => {
+const AutocompleteInput: FunctionComponent<AutocompleteInputProps> = props => {
+    const {
+        allowEmpty,
+        className,
+        classes: classesOverride,
+        clearAlwaysVisible,
+        choices = [],
+        disabled,
+        emptyText,
+        emptyValue,
+        format,
+        fullWidth,
+        helperText,
+        id: idOverride,
+        input: inputOverride,
+        isRequired: isRequiredOverride,
+        label,
+        limitChoicesToValue,
+        margin = 'dense',
+        matchSuggestion,
+        meta: metaOverride,
+        onBlur,
+        onChange,
+        onFocus,
+        options: {
+            suggestionsContainerProps,
+            labelProps,
+            InputProps,
+            ...options
+        } = {
+            suggestionsContainerProps: undefined,
+            labelProps: undefined,
+            InputProps: undefined,
+        },
+        optionText = 'name',
+        inputText,
+        optionValue = 'id',
+        parse,
+        resettable,
+        resource,
+        setFilter,
+        shouldRenderSuggestions: shouldRenderSuggestionsOverride,
+        source,
+        suggestionLimit,
+        translateChoice = true,
+        validate,
+        variant = 'filled',
+        ...rest
+    } = props;
+
+    if (isValidElement(optionText) && !inputText) {
+        throw new Error(`If the optionText prop is a React element, you must also specify the inputText prop:
+        <AutocompleteInput
+            inputText={(record) => record.title}
+        />`);
+    }
+
     warning(
         isValidElement(optionText) && !matchSuggestion,
         `If the optionText prop is a React element, you must also specify the matchSuggestion prop:
@@ -145,10 +160,22 @@ const AutocompleteInput: FunctionComponent<
         `
     );
 
-    const classes = useStyles({ classes: classesOverride });
+    warning(
+        source === undefined,
+        `If you're not wrapping the AutocompleteInput inside a ReferenceInput, you must provide the source prop`
+    );
+
+    warning(
+        choices === undefined,
+        `If you're not wrapping the AutocompleteInput inside a ReferenceInput, you must provide the choices prop`
+    );
+
+    const classes = useStyles(props);
 
     let inputEl = useRef<HTMLInputElement>();
     let anchorEl = useRef<any>();
+
+    const translate = useTranslate();
 
     const {
         id,
@@ -219,8 +246,22 @@ const AutocompleteInput: FunctionComponent<
 
         // If we have a value, set the filter to its text so that
         // Downshift displays it correctly
-        setFilterValue(input.value ? getChoiceText(selectedItem) : '');
-    }, [input.value, handleFilterChange, selectedItem, getChoiceText]);
+        setFilterValue(
+            typeof input.value === 'undefined' ||
+                input.value === null ||
+                selectedItem === null
+                ? ''
+                : inputText
+                ? inputText(getChoiceText(selectedItem).props.record)
+                : getChoiceText(selectedItem)
+        );
+    }, [
+        input.value,
+        handleFilterChange,
+        selectedItem,
+        getChoiceText,
+        inputText,
+    ]);
 
     const handleChange = useCallback(
         (item: any) => {
@@ -265,12 +306,19 @@ const AutocompleteInput: FunctionComponent<
     const handleBlur = useCallback(
         event => {
             handleFilterChange('');
+
             // If we had a value before, set the filter back to its text so that
             // Downshift displays it correctly
-            setFilterValue(input.value ? getChoiceText(selectedItem) : '');
+            setFilterValue(
+                input.value
+                    ? inputText
+                        ? inputText(getChoiceText(selectedItem).props.record)
+                        : getChoiceText(selectedItem)
+                    : ''
+            );
             input.onBlur(event);
         },
-        [getChoiceText, handleFilterChange, input, selectedItem]
+        [getChoiceText, handleFilterChange, input, inputText, selectedItem]
     );
 
     const handleFocus = useCallback(
@@ -290,6 +338,82 @@ const AutocompleteInput: FunctionComponent<
         }
 
         return true;
+    };
+
+    const { endAdornment, ...InputPropsWithoutEndAdornment } = InputProps || {};
+
+    const handleClickClearButton = useCallback(
+        openMenu => event => {
+            event.stopPropagation();
+            setFilterValue('');
+            input.onChange('');
+            openMenu(event);
+            input.onFocus(event);
+        },
+        [input]
+    );
+
+    const getEndAdornment = openMenu => {
+        if (!resettable) {
+            return endAdornment;
+        } else if (!filterValue) {
+            const label = translate('ra.action.clear_input_value');
+            if (clearAlwaysVisible) {
+                // show clear button, inactive
+                return (
+                    <InputAdornment position="end">
+                        <IconButton
+                            className={classes.clearButton}
+                            aria-label={label}
+                            title={label}
+                            disableRipple
+                            disabled={true}
+                        >
+                            <ClearIcon
+                                className={classNames(
+                                    classes.clearIcon,
+                                    classes.visibleClearIcon
+                                )}
+                            />
+                        </IconButton>
+                    </InputAdornment>
+                );
+            } else {
+                if (endAdornment) {
+                    return endAdornment;
+                } else {
+                    // show spacer
+                    return (
+                        <InputAdornment position="end">
+                            <span className={classes.clearButton}>&nbsp;</span>
+                        </InputAdornment>
+                    );
+                }
+            }
+        } else {
+            // show clear
+            const label = translate('ra.action.clear_input_value');
+            return (
+                <InputAdornment position="end">
+                    <IconButton
+                        className={classes.clearButton}
+                        aria-label={label}
+                        title={label}
+                        disableRipple
+                        onClick={handleClickClearButton(openMenu)}
+                        onMouseDown={handleMouseDownClearButton}
+                        disabled={disabled}
+                    >
+                        <ClearIcon
+                            className={classNames(classes.clearIcon, {
+                                [classes.visibleClearIcon]:
+                                    clearAlwaysVisible || filterValue,
+                            })}
+                        />
+                    </IconButton>
+                </InputAdornment>
+            );
+        }
     };
 
     return (
@@ -318,6 +442,8 @@ const AutocompleteInput: FunctionComponent<
                     onChange,
                     onFocus,
                     ref,
+                    size,
+                    color,
                     ...inputProps
                 } = getInputProps({
                     onBlur: handleBlur,
@@ -333,15 +459,19 @@ const AutocompleteInput: FunctionComponent<
                             name={input.name}
                             InputProps={{
                                 inputRef: storeInputRef,
+                                endAdornment: getEndAdornment(openMenu),
                                 onBlur,
                                 onChange: event => {
                                     handleFilterChange(event);
                                     setFilterValue(event.target.value);
-                                    onChange!(event as React.ChangeEvent<
-                                        HTMLInputElement
-                                    >);
+                                    onChange!(
+                                        event as React.ChangeEvent<
+                                            HTMLInputElement
+                                        >
+                                    );
                                 },
                                 onFocus,
+                                ...InputPropsWithoutEndAdornment,
                             }}
                             error={!!(touched && error)}
                             label={
@@ -362,19 +492,20 @@ const AutocompleteInput: FunctionComponent<
                                 htmlFor: id,
                             })}
                             helperText={
-                                (touched && error) || helperText ? (
-                                    <InputHelperText
-                                        touched={touched}
-                                        error={error}
-                                        helperText={helperText}
-                                    />
-                                ) : null
+                                <InputHelperText
+                                    touched={touched}
+                                    error={error}
+                                    helperText={helperText}
+                                />
                             }
+                            disabled={disabled}
                             variant={variant}
                             margin={margin}
                             fullWidth={fullWidth}
                             value={filterValue}
                             className={className}
+                            size={size as any}
+                            color={color as any}
                             {...inputProps}
                             {...options}
                         />
@@ -389,6 +520,7 @@ const AutocompleteInput: FunctionComponent<
                             suggestionsContainerProps={
                                 suggestionsContainerProps
                             }
+                            className={classes.suggestionsContainer}
                         >
                             {suggestions.map((suggestion, index) => (
                                 <AutocompleteSuggestionItem
@@ -415,18 +547,45 @@ const AutocompleteInput: FunctionComponent<
     );
 };
 
+const handleMouseDownClearButton = event => {
+    event.preventDefault();
+};
+
 const useStyles = makeStyles(
     {
-        root: {
-            flexGrow: 1,
-            height: 250,
-        },
         container: {
             flexGrow: 1,
             position: 'relative',
         },
+        clearIcon: {
+            height: 16,
+            width: 0,
+        },
+        visibleClearIcon: {
+            width: 16,
+        },
+        clearButton: {
+            height: 24,
+            width: 24,
+            padding: 0,
+        },
+        selectAdornment: {
+            position: 'absolute',
+            right: 24,
+        },
+        inputAdornedEnd: {
+            paddingRight: 0,
+        },
+        suggestionsContainer: {},
     },
     { name: 'RaAutocompleteInput' }
 );
+
+export interface AutocompleteInputProps
+    extends ChoicesInputProps<TextFieldProps & Options>,
+        Omit<DownshiftProps<any>, 'onChange'> {
+    clearAlwaysVisible?: boolean;
+    resettable?: boolean;
+}
 
 export default AutocompleteInput;

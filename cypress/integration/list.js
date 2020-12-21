@@ -78,6 +78,7 @@ describe('List Page', () => {
         it('should keep filters when navigating away and going back on given page', () => {
             ListPagePosts.logout();
             LoginPage.login('admin', 'password');
+            ListPagePosts.navigate();
             ListPagePosts.setFilterValue('q', 'quis culpa impedit');
             cy.contains('1-1 of 1');
 
@@ -94,6 +95,25 @@ describe('List Page', () => {
             );
             cy.contains('1-1 of 1');
             ListPagePosts.setFilterValue('q', '');
+        });
+
+        it('should keep added filters when emptying it after navigating away and back', () => {
+            ListPagePosts.logout();
+            LoginPage.login('admin', 'password');
+            ListPagePosts.navigate();
+            ListPagePosts.showFilter('title');
+            ListPagePosts.setFilterValue(
+                'title',
+                'Omnis voluptate enim similique est possimus'
+            );
+            cy.contains('1-1 of 1');
+            cy.get('[href="#/users"]').click();
+            cy.get('[href="#/posts"]').click();
+            cy.get(ListPagePosts.elements.filter('title')).should(el =>
+                expect(el).to.have.value(
+                    'Omnis voluptate enim similique est possimus'
+                )
+            );
         });
 
         it('should allow to disable alwaysOn filters with default value', () => {
@@ -185,9 +205,7 @@ describe('List Page', () => {
             ListPagePosts.logout();
             LoginPage.login('user', 'password');
             ListPageUsers.navigate();
-            cy.contains('Annamarie Mayer')
-                .parents('tr')
-                .click();
+            cy.contains('Annamarie Mayer').parents('tr').click();
             cy.contains('Summary').should(el => expect(el).to.exist);
         });
     });

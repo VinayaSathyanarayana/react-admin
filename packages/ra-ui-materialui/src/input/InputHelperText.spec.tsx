@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import expect from 'expect';
 import { render, cleanup } from '@testing-library/react';
 import InputHelperText from './InputHelperText';
@@ -6,11 +6,11 @@ import InputHelperText from './InputHelperText';
 describe('InputHelperText', () => {
     afterEach(cleanup);
 
-    it('does not render anything when the input has not been touched yet and has no helper text', () => {
+    it('does render empty string when the input has not been touched yet and has no helper text', () => {
         const { container } = render(
             <InputHelperText touched={false} error="Crap!" />
         );
-        expect(container.innerHTML).toBe('');
+        expect(container.innerHTML).toBe('<span>​</span>');
     });
 
     it('renders the helperText when there is no error', () => {
@@ -18,7 +18,7 @@ describe('InputHelperText', () => {
             <InputHelperText helperText="Please help!" touched />
         );
 
-        expect(getByText('Please help!')).toBeDefined();
+        expect(getByText('Please help!')).not.toBeNull();
     });
 
     it('renders the helperText when there is an error but the input has not been touched yet', () => {
@@ -30,7 +30,7 @@ describe('InputHelperText', () => {
             />
         );
 
-        expect(getByText('Please help!')).toBeDefined();
+        expect(getByText('Please help!')).not.toBeNull();
         expect(queryByText('Crap!')).toBeNull();
     });
 
@@ -40,6 +40,6 @@ describe('InputHelperText', () => {
         );
 
         expect(queryByText('Please help!')).toBeNull();
-        expect(getByText('Crap!')).toBeDefined();
+        expect(getByText('Crap!')).not.toBeNull();
     });
 });

@@ -6,7 +6,7 @@ import React, {
     ReactElement,
 } from 'react';
 import PropTypes from 'prop-types';
-import { shallowEqual } from 'recompose';
+import { shallowEqual } from 'react-redux';
 import { useDropzone, DropzoneOptions } from 'react-dropzone';
 import { makeStyles } from '@material-ui/core/styles';
 import FormHelperText from '@material-ui/core/FormHelperText';
@@ -15,7 +15,7 @@ import { useInput, useTranslate, InputProps } from 'ra-core';
 
 import Labeled from './Labeled';
 import FileInputPreview from './FileInputPreview';
-import sanitizeRestProps from './sanitizeRestProps';
+import sanitizeInputRestProps from './sanitizeInputRestProps';
 import InputHelperText from './InputHelperText';
 
 const useStyles = makeStyles(
@@ -47,33 +47,38 @@ export interface FileInputProps {
 
 export interface FileInputOptions extends DropzoneOptions {
     inputProps?: any;
+    onRemove?: Function;
 }
 
 const FileInput: FunctionComponent<
     FileInputProps & InputProps<FileInputOptions>
-> = ({
-    accept,
-    children,
-    className,
-    classes: classesOverride,
-    format,
-    helperText,
-    label,
-    labelMultiple = 'ra.input.file.upload_several',
-    labelSingle = 'ra.input.file.upload_single',
-    maxSize,
-    minSize,
-    multiple = false,
-    options: { inputProps: inputPropsOptions, ...options } = {},
-    parse,
-    placeholder,
-    resource,
-    source,
-    validate,
-    ...rest
-}) => {
+> = props => {
+    const {
+        accept,
+        children,
+        className,
+        classes: classesOverride,
+        format,
+        helperText,
+        label,
+        labelMultiple = 'ra.input.file.upload_several',
+        labelSingle = 'ra.input.file.upload_single',
+        maxSize,
+        minSize,
+        multiple = false,
+        options: {
+            inputProps: inputPropsOptions,
+            ...options
+        } = {} as FileInputOptions,
+        parse,
+        placeholder,
+        resource,
+        source,
+        validate,
+        ...rest
+    } = props;
     const translate = useTranslate();
-    const classes = useStyles({ classes: classesOverride });
+    const classes = useStyles(props);
 
     // turn a browser dropped file structure into expected structure
     const transformFile = file => {
@@ -149,11 +154,16 @@ const FileInput: FunctionComponent<
         } else {
             onChange(null);
         }
+
+        if (options.onRemove) {
+            options.onRemove(file);
+        }
     };
 
-    const childrenElement = isValidElement(Children.only(children))
-        ? (Children.only(children) as ReactElement<any>)
-        : undefined;
+    const childrenElement =
+        children && isValidElement(Children.only(children))
+            ? (Children.only(children) as ReactElement<any>)
+            : undefined;
 
     const { getRootProps, getInputProps } = useDropzone({
         ...options,
@@ -173,7 +183,7 @@ const FileInput: FunctionComponent<
             resource={resource}
             isRequired={isRequired}
             meta={meta}
-            {...sanitizeRestProps(rest)}
+            {...sanitizeInputRestProps(rest)}
         >
             <>
                 <div
@@ -196,6 +206,13 @@ const FileInput: FunctionComponent<
                         <p>{translate(labelSingle)}</p>
                     )}
                 </div>
+                <FormHelperText>
+                    <InputHelperText
+                        touched={touched}
+                        error={error}
+                        helperText={helperText}
+                    />
+                </FormHelperText>
                 {children && (
                     <div className="previews">
                         {files.map((file, index) => (
@@ -213,15 +230,6 @@ const FileInput: FunctionComponent<
                         ))}
                     </div>
                 )}
-                {(touched && error) || helperText ? (
-                    <FormHelperText>
-                        <InputHelperText
-                            touched={touched}
-                            error={error}
-                            helperText={helperText}
-                        />
-                    </FormHelperText>
-                ) : null}
             </>
         </Labeled>
     );

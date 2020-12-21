@@ -1,4 +1,5 @@
-import React, { FunctionComponent, ReactElement } from 'react';
+import * as React from 'react';
+import { FunctionComponent, ReactElement } from 'react';
 import PropTypes from 'prop-types';
 import InputLabel from '@material-ui/core/InputLabel';
 import FormControl from '@material-ui/core/FormControl';
@@ -26,18 +27,18 @@ const useStyles = makeStyles(
     { name: 'RaLabeled' }
 );
 
-interface Props {
+export interface LabeledProps {
     children: ReactElement;
     className?: string;
     classes?: object;
     fullWidth?: boolean;
-    id: string;
-    input: any;
-    isRequired: boolean;
-    label?: string;
-    meta: any;
-    resource: string;
-    source: string;
+    id?: string;
+    input?: any;
+    isRequired?: boolean;
+    label?: string | ReactElement;
+    meta?: any;
+    resource?: string;
+    source?: string;
     [key: string]: any;
 }
 /**
@@ -55,22 +56,23 @@ interface Props {
  *     <FooComponent source="title" />
  * </Labeled>
  */
-const Labeled: FunctionComponent<Props> = ({
-    children,
-    className,
-    classes: classesOverride,
-    fullWidth,
-    id,
-    input,
-    isRequired,
-    label,
-    margin = 'dense',
-    meta,
-    resource,
-    source,
-    ...rest
-}) => {
-    const classes = useStyles({ classes: classesOverride });
+const Labeled: FunctionComponent<LabeledProps> = props => {
+    const {
+        children,
+        className,
+        classes: classesOverride,
+        fullWidth,
+        id,
+        input,
+        isRequired,
+        label,
+        margin = 'dense',
+        meta,
+        resource,
+        source,
+        ...rest
+    } = props;
+    const classes = useStyles(props);
     if (!label && !source) {
         // @ts-ignore
         const name = children && children.type && children.type.name;
@@ -118,7 +120,7 @@ Labeled.propTypes = {
     id: PropTypes.string,
     input: PropTypes.object,
     isRequired: PropTypes.bool,
-    label: PropTypes.string,
+    label: PropTypes.oneOfType([PropTypes.string, PropTypes.element]),
     meta: PropTypes.object,
     onChange: PropTypes.func,
     record: PropTypes.object,

@@ -1,27 +1,31 @@
-import { introspectionQuery } from 'graphql';
+import { getIntrospectionQuery } from 'graphql';
 import gql from 'graphql-tag';
 import { GET_LIST, GET_ONE } from 'ra-core';
 
 import { ALL_TYPES } from './constants';
 
-export const filterTypesByIncludeExclude = ({ include, exclude }) => {
+export const isResourceIncluded = ({ include, type }) => {
     if (Array.isArray(include)) {
-        return type => include.includes(type.name);
+        return include.includes(type.name);
     }
 
     if (typeof include === 'function') {
-        return type => include(type);
+        return include(type);
     }
 
+    return false;
+};
+
+export const isResourceExcluded = ({ exclude, type }) => {
     if (Array.isArray(exclude)) {
-        return type => !exclude.includes(type.name);
+        return exclude.includes(type.name);
     }
 
     if (typeof exclude === 'function') {
-        return type => !exclude(type);
+        return exclude(type);
     }
 
-    return () => true;
+    return false;
 };
 
 /**
@@ -35,15 +39,15 @@ export default async (client, options) => {
               .query({
                   fetchPolicy: 'network-only',
                   query: gql`
-                      ${introspectionQuery}
+                      ${getIntrospectionQuery()}
                   `,
               })
               .then(({ data: { __schema } }) => __schema);
 
     const queries = schema.types.reduce((acc, type) => {
         if (
-            type.name !== schema.queryType.name &&
-            type.name !== schema.mutationType.name
+            type.name !== (schema.queryType && schema.queryType.name) &&
+            type.name !== (schema.mutationType && schema.mutationType.name)
         )
             return acc;
 
@@ -52,17 +56,23 @@ export default async (client, options) => {
 
     const types = schema.types.filter(
         type =>
-            type.name !== schema.queryType.name &&
-            type.name !== schema.mutationType.name
+            type.name !== (schema.queryType && schema.queryType.name) &&
+            type.name !== (schema.mutationType && schema.mutationType.name)
     );
 
-    const isResource = type =>
-        queries.some(
-            query => query.name === options.operationNames[GET_LIST](type)
-        ) &&
-        queries.some(
-            query => query.name === options.operationNames[GET_ONE](type)
+    const isResource = type => {
+        if (isResourceIncluded({ type, ...options })) return true;
+        if (isResourceExcluded({ type, ...options })) return false;
+
+        return (
+            queries.some(
+                query => query.name === options.operationNames[GET_LIST](type)
+            ) &&
+            queries.some(
+                query => query.name === options.operationNames[GET_ONE](type)
+            )
         );
+    };
 
     const buildResource = type =>
         ALL_TYPES.reduce(
@@ -78,10 +88,7 @@ export default async (client, options) => {
             { type }
         );
 
-    const potentialResources = types.filter(isResource);
-    const filteredResources = potentialResources.filter(
-        filterTypesByIncludeExclude(options)
-    );
+    const filteredResources = types.filter(isResource);
     const resources = filteredResources.map(buildResource);
 
     return {

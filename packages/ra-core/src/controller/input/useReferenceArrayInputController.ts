@@ -2,12 +2,18 @@ import { useMemo, useState, useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import isEqual from 'lodash/isEqual';
 import difference from 'lodash/difference';
-import { Pagination, Record, Sort, ReduxState } from '../../types';
+import {
+    PaginationPayload,
+    Record,
+    SortPayload,
+    ReduxState,
+} from '../../types';
 import { useGetMany } from '../../dataProvider';
 import { FieldInputProps } from 'react-final-form';
 import useGetMatching from '../../dataProvider/useGetMatching';
 import { useTranslate } from '../../i18n';
 import { getStatusForArrayInput as getDataStatus } from './referenceDataStatus';
+import { useResourceContext } from '../../core';
 
 /**
  * Prepare data for the ReferenceArrayInput components
@@ -23,9 +29,7 @@ import { getStatusForArrayInput as getDataStatus } from './referenceDataStatus';
  * });
  *
  * @param {Object} option
- * @param {boolean} option.allowEmpty do we allow for no referenced record (default to false)
  * @param {string} option.basePath basepath to current resource
- * @param {string | false} option.linkType The type of the link toward the referenced record. edit, show of false for no link (default to edit)
  * @param {Object} option.record The The current resource record
  * @param {string} option.reference The linked resource name
  * @param {string} option.resource The current resource name
@@ -33,17 +37,20 @@ import { getStatusForArrayInput as getDataStatus } from './referenceDataStatus';
  *
  * @return {Object} controllerProps Fetched data and callbacks for the ReferenceArrayInput components
  */
-const useReferenceArrayInputController = ({
-    filter: defaultFilter,
-    filterToQuery = defaultFilterToQuery,
-    input,
-    perPage = 25,
-    sort: defaultSort = { field: 'id', order: 'DESC' },
-    options,
-    reference,
-    resource,
-    source,
-}: Option): ReferenceArrayInputProps => {
+const useReferenceArrayInputController = (
+    props: Option
+): ReferenceArrayInputProps => {
+    const {
+        filter: defaultFilter,
+        filterToQuery = defaultFilterToQuery,
+        input,
+        perPage = 25,
+        sort: defaultSort = { field: 'id', order: 'DESC' },
+        options,
+        reference,
+        source,
+    } = props;
+    const resource = useResourceContext(props);
     const translate = useTranslate();
 
     // We store the current input value in a ref so that we are able to fetch
@@ -58,13 +65,43 @@ const useReferenceArrayInputController = ({
     // optimization: we fetch selected items only once. When the user selects more items,
     // as we already have the past selected items in the store, we don't fetch them.
     useEffect(() => {
+        // Only fetch new ids
         const newIdsToFetch = difference(input.value, inputValue.current);
-        if (newIdsToFetch.length > 0) {
+        // Only get from store ids selected and already fetched
+        const newIdsToGetFromStore = difference(input.value, newIdsToFetch);
+        /*
+            input.value (current)
+                +------------------------+
+                | ********************** |
+                | ********************** |  inputValue.current (old)
+                | ********** +-----------------------+
+                | ********** | ooooooooo |           |
+                | ********** | ooooooooo |           |
+                | ********** | ooooooooo |           |
+                | ********** | ooooooooo |           |
+                +---|--------|------|----+           |
+                    |        |      |                |
+                    |        |      |                |
+                    |        +------|----------------+
+                    |               |
+            newIdsToFetch    newIdsToGetFromStore
+        */
+        // Change states each time input values changes to avoid keeping previous values no more selected
+        if (!isEqual(idsToFetch, newIdsToFetch)) {
             setIdsToFetch(newIdsToFetch);
-            setIdsToGetFromStore(inputValue.current || []);
         }
+        if (!isEqual(idsToGetFromStore, newIdsToGetFromStore)) {
+            setIdsToGetFromStore(newIdsToGetFromStore);
+        }
+
         inputValue.current = input.value;
-    }, [input.value, setIdsToFetch]);
+    }, [
+        idsToFetch,
+        idsToGetFromStore,
+        input.value,
+        setIdsToFetch,
+        setIdsToGetFromStore,
+    ]);
 
     const [pagination, setPagination] = useState({ page: 1, perPage });
     const [sort, setSort] = useState(defaultSort);
@@ -178,12 +215,12 @@ interface ReferenceArrayInputProps {
     loading: boolean;
     loaded: boolean;
     setFilter: (filter: any) => void;
-    setPagination: (pagination: Pagination) => void;
-    setSort: (sort: Sort) => void;
+    setPagination: (pagination: PaginationPayload) => void;
+    setSort: (sort: SortPayload) => void;
 }
 
 interface Option {
-    basePath: string;
+    basePath?: string;
     filter?: any;
     filterToQuery?: (filter: any) => any;
     input: FieldInputProps<any, HTMLElement>;
@@ -191,8 +228,8 @@ interface Option {
     perPage?: number;
     record?: Record;
     reference: string;
-    resource: string;
-    sort?: Sort;
+    resource?: string;
+    sort?: SortPayload;
     source: string;
 }
 

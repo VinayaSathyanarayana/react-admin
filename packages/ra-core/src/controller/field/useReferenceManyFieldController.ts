@@ -1,17 +1,16 @@
 import get from 'lodash/get';
+import { useCallback, useEffect, useRef } from 'react';
+import isEqual from 'lodash/isEqual';
 
-import { Record, Sort, RecordMap, Identifier } from '../../types';
+import { useSafeSetState, removeEmpty } from '../../util';
 import { useGetManyReference } from '../../dataProvider';
 import { useNotify } from '../../sideEffect';
-
-interface ReferenceManyProps {
-    data: RecordMap;
-    ids: Identifier[];
-    loaded: boolean;
-    loading: boolean;
-    referenceBasePath: string;
-    total: number;
-}
+import { Record, SortPayload, RecordMap } from '../../types';
+import { ListControllerProps } from '../useListController';
+import usePaginationState from '../usePaginationState';
+import useSelectionState from '../useSelectionState';
+import useSortState from '../useSortState';
+import { useResourceContext } from '../../core';
 
 interface Options {
     basePath: string;
@@ -19,27 +18,18 @@ interface Options {
     filter?: any;
     ids?: any[];
     loaded?: boolean;
-    page: number;
-    perPage: number;
+    page?: number;
+    perPage?: number;
     record?: Record;
     reference: string;
     resource: string;
-    sort?: Sort;
-    source: string;
+    sort?: SortPayload;
+    source?: string;
     target: string;
     total?: number;
 }
 
 const defaultFilter = {};
-
-/**
- * @typedef ReferenceManyProps
- * @type {Object}
- * @property {Object} data: the referenced records dictionary by their ids.
- * @property {Object} ids: the list of referenced records ids.
- * @property {boolean} loaded: boolean indicating if the references has already be loaded loaded
- * @property {string | false} referenceBasePath base path of the related record
- */
 
 /**
  * Fetch reference records, and return them when avaliable
@@ -72,31 +62,109 @@ const defaultFilter = {};
  * @param {string} option.basePath basepath to current resource
  * @param {number} option.page the page number
  * @param {number} option.perPage the number of item per page
- * @param {object} option.sort the sort to apply to the referenced records
+ * @param {Object} option.sort the sort to apply to the referenced records
  *
  * @returns {ReferenceManyProps} The reference many props
  */
-const useReferenceManyFieldController = ({
-    resource,
-    reference,
-    record,
-    target,
-    filter = defaultFilter,
-    source,
-    basePath,
-    page,
-    perPage,
-    sort = { field: 'id', order: 'DESC' },
-}: Options): ReferenceManyProps => {
-    const referenceId = get(record, source);
+const useReferenceManyFieldController = (
+    props: Options
+): ListControllerProps => {
+    const {
+        reference,
+        record,
+        target,
+        filter = defaultFilter,
+        source,
+        basePath,
+        page: initialPage,
+        perPage: initialPerPage,
+        sort: initialSort = { field: 'id', order: 'DESC' },
+    } = props;
+    const resource = useResourceContext(props);
     const notify = useNotify();
-    const { data, ids, total, loading, loaded } = useGetManyReference(
+
+    // pagination logic
+    const { page, setPage, perPage, setPerPage } = usePaginationState({
+        page: initialPage,
+        perPage: initialPerPage,
+    });
+
+    // sort logic
+    const { sort, setSort: setSortObject } = useSortState(initialSort);
+    const setSort = useCallback(
+        (field: string, order: string = 'ASC') => {
+            setSortObject({ field, order });
+            setPage(1);
+        },
+        [setPage, setSortObject]
+    );
+
+    // selection logic
+    const {
+        selectedIds,
+        onSelect,
+        onToggleItem,
+        onUnselectItems,
+    } = useSelectionState();
+
+    // filter logic
+    const filterRef = useRef(filter);
+    const [displayedFilters, setDisplayedFilters] = useSafeSetState<{
+        [key: string]: boolean;
+    }>({});
+    const [filterValues, setFilterValues] = useSafeSetState<{
+        [key: string]: any;
+    }>(filter);
+    const hideFilter = useCallback(
+        (filterName: string) => {
+            setDisplayedFilters(previousState => {
+                const { [filterName]: _, ...newState } = previousState;
+                return newState;
+            });
+            setFilterValues(previousState => {
+                const { [filterName]: _, ...newState } = previousState;
+                return newState;
+            });
+        },
+        [setDisplayedFilters, setFilterValues]
+    );
+    const showFilter = useCallback(
+        (filterName: string, defaultValue: any) => {
+            setDisplayedFilters(previousState => ({
+                ...previousState,
+                [filterName]: true,
+            }));
+            setFilterValues(previousState => ({
+                ...previousState,
+                [filterName]: defaultValue,
+            }));
+        },
+        [setDisplayedFilters, setFilterValues]
+    );
+    const setFilters = useCallback(
+        (filters, displayedFilters) => {
+            setFilterValues(removeEmpty(filters));
+            setDisplayedFilters(displayedFilters);
+            setPage(1);
+        },
+        [setDisplayedFilters, setFilterValues, setPage]
+    );
+    // handle filter prop change
+    useEffect(() => {
+        if (!isEqual(filter, filterRef.current)) {
+            filterRef.current = filter;
+            setFilterValues(filter);
+        }
+    });
+
+    const referenceId = get(record, source);
+    const { data, ids, total, error, loading, loaded } = useGetManyReference(
         reference,
         target,
         referenceId,
         { page, perPage },
         sort,
-        filter,
+        filterValues,
         resource,
         {
             onFailure: error =>
@@ -104,19 +172,44 @@ const useReferenceManyFieldController = ({
                     typeof error === 'string'
                         ? error
                         : error.message || 'ra.notification.http_error',
-                    'warning'
+                    'warning',
+                    {
+                        _:
+                            typeof error === 'string'
+                                ? error
+                                : error && error.message
+                                ? error.message
+                                : undefined,
+                    }
                 ),
         }
     );
 
-    const referenceBasePath = basePath.replace(resource, reference);
-
     return {
+        basePath: basePath.replace(resource, reference),
+        currentSort: sort,
         data,
+        defaultTitle: null,
+        displayedFilters,
+        error,
+        filterValues,
+        hasCreate: false,
+        hideFilter,
         ids,
         loaded,
         loading,
-        referenceBasePath,
+        onSelect,
+        onToggleItem,
+        onUnselectItems,
+        page,
+        perPage,
+        resource: reference,
+        selectedIds,
+        setFilters,
+        setPage,
+        setPerPage,
+        setSort,
+        showFilter,
         total,
     };
 };

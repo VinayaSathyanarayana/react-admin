@@ -1,4 +1,4 @@
-import { Record, Pagination, Sort } from '../../types';
+import { Record, PaginationPayload, SortPayload } from '../../types';
 import { GET_LIST } from '../../core';
 import { FETCH_END, FETCH_ERROR } from '../fetchActions';
 import { NotificationSideEffect } from '../../sideEffect';
@@ -6,8 +6,8 @@ import { NotificationSideEffect } from '../../sideEffect';
 export const crudGetMatching = (
     reference: string,
     relatedTo: string,
-    pagination: Pagination,
-    sort: Sort,
+    pagination: PaginationPayload,
+    sort: SortPayload,
     filter: object
 ): CrudGetMatchingAction => ({
     type: CRUD_GET_MATCHING,
@@ -26,13 +26,13 @@ export const crudGetMatching = (
 });
 
 interface RequestPayload {
-    pagination: Pagination;
-    sort: Sort;
+    pagination: PaginationPayload;
+    sort: SortPayload;
     filter: object;
 }
 
 export const CRUD_GET_MATCHING = 'RA/CRUD_GET_MATCHING';
-interface CrudGetMatchingAction {
+export interface CrudGetMatchingAction {
     readonly type: typeof CRUD_GET_MATCHING;
     readonly payload: RequestPayload;
     readonly meta: {

@@ -1,6 +1,14 @@
 import { useSelector } from 'react-redux';
+import get from 'lodash/get';
+
 import { CRUD_GET_MATCHING } from '../actions/dataActions/crudGetMatching';
-import { Identifier, Pagination, Sort, Record, ReduxState } from '../types';
+import {
+    Identifier,
+    PaginationPayload,
+    SortPayload,
+    Record,
+    ReduxState,
+} from '../types';
 import useQueryWithStore from './useQueryWithStore';
 import {
     getReferenceResource,
@@ -33,7 +41,7 @@ const referenceSource = (resource, source) => `${resource}@${source}`;
  * @param {Object} filter The request filters, e.g. { title: 'hello, world' }
  * @param {string} source The field in resource containing the ids of the referenced records, e.g. 'tag_ids'
  * @param {string} referencingResource The resource name, e.g. 'posts'. Used to build a cache key
- * @param {Object} options Options object to pass to the dataProvider. May include side effects to be executed upon success of failure, e.g. { onSuccess: { refresh: true } }
+ * @param {Object} options Options object to pass to the dataProvider. May include side effects to be executed upon success or failure, e.g. { onSuccess: { refresh: true } }
  *
  * @returns The current request state. Destructure as { data, total, ids, error, loading, loaded }.
  *
@@ -60,14 +68,15 @@ const referenceSource = (resource, source) => `${resource}@${source}`;
  */
 const useGetMatching = (
     resource: string,
-    pagination: Pagination,
-    sort: Sort,
+    pagination: PaginationPayload,
+    sort: SortPayload,
     filter: object,
     source: string,
     referencingResource: string,
     options?: any
 ): UseGetMatchingResult => {
     const relatedTo = referenceSource(referencingResource, source);
+    const payload = { pagination, sort, filter };
     const {
         data: possibleValues,
         total,
@@ -78,7 +87,7 @@ const useGetMatching = (
         {
             type: 'getList',
             resource,
-            payload: { pagination, sort, filter },
+            payload,
         },
         {
             ...options,
@@ -92,9 +101,17 @@ const useGetMatching = (
                 source,
             }),
         (state: ReduxState) =>
-            state.admin.resources[resource]
-                ? state.admin.resources[resource].list.total
-                : null
+            get(
+                state.admin.resources,
+                [
+                    resource,
+                    'list',
+                    'cachedRequests',
+                    JSON.stringify(payload),
+                    'total',
+                ],
+                null
+            )
     );
 
     const referenceState = useSelector(state =>

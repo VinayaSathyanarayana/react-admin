@@ -15,15 +15,15 @@ export default url => ({
         recordRows: '.datagrid-body tr',
         viewsColumn: '.datagrid-body tr td:nth-child(7)',
         datagridHeaders: 'th',
-        sortBy: name => `th span[data-sort="${name}"]`,
+        sortBy: name => `th span[data-field="${name}"]`,
         svg: (name, criteria = '') =>
-            `th span[data-sort="${name}"] svg${criteria}`,
+            `th span[data-field="${name}"] svg${criteria}`,
         logout: '.logout',
         bulkActionsToolbar: '[data-test=bulk-actions-toolbar]',
         customBulkActionsButton:
-            '[data-test=bulk-actions-toolbar] button:first-child',
+            '[data-test=bulk-actions-toolbar] button[aria-label="Reset views"]',
         deleteBulkActionsButton:
-            '[data-test=bulk-actions-toolbar] button:nth-child(2)',
+            '[data-test=bulk-actions-toolbar] button[aria-label="Delete"]',
         selectAll: '.select-all',
         selectedItem: '.select-item input:checked',
         selectItem: '.select-item input',
@@ -50,15 +50,15 @@ export default url => ({
     },
 
     nextPage() {
-        cy.get(this.elements.nextPage).click();
+        cy.get(this.elements.nextPage).click({ force: true });
     },
 
     previousPage() {
-        cy.get(this.elements.previousPage).click();
+        cy.get(this.elements.previousPage).click({ force: true });
     },
 
     goToPage(n) {
-        return cy.get(this.elements.pageNumber(n)).click();
+        return cy.get(this.elements.pageNumber(n)).click({ force: true });
     },
 
     setFilterValue(name, value, clearPreviousValue = true) {

@@ -31,7 +31,7 @@ import useDataProviderWithDeclarativeSideEffects from './useDataProviderWithDecl
  * @param {Object} options
  * @param {string} options.action Redux action type
  * @param {boolean} options.undoable Set to true to run the mutation locally before calling the dataProvider
- * @param {Function} options.onSuccess Side effect function to be executed upon success of failure, e.g. { onSuccess: response => refresh() } }
+ * @param {Function} options.onSuccess Side effect function to be executed upon success or failure, e.g. { onSuccess: response => refresh() } }
  * @param {Function} options.onFailure Side effect function to be executed upon failure, e.g. { onFailure: error => notify(error.message) } }
  * @param {boolean} options.withDeclarativeSideEffectsSupport Set to true to support legacy side effects (e.g. { onSuccess: { refresh: true } })
  *
@@ -52,7 +52,7 @@ import useDataProviderWithDeclarativeSideEffects from './useDataProviderWithDecl
  * - {Object} options
  * - {string} options.action Redux action type
  * - {boolean} options.undoable Set to true to run the mutation locally before calling the dataProvider
- * - {Function} options.onSuccess Side effect function to be executed upon success of failure, e.g. { onSuccess: response => refresh() } }
+ * - {Function} options.onSuccess Side effect function to be executed upon success or failure, e.g. { onSuccess: response => refresh() } }
  * - {Function} options.onFailure Side effect function to be executed upon failure, e.g. { onFailure: error => notify(error.message) } }
  * - {boolean} withDeclarativeSideEffectsSupport Set to true to support legacy side effects (e.g. { onSuccess: { refresh: true } })
  *
@@ -156,24 +156,29 @@ const useMutation = (
 
             setState(prevState => ({ ...prevState, loading: true }));
 
-            finalDataProvider[params.type](
-                params.resource,
-                params.payload,
-                params.options
-            )
+            finalDataProvider[params.type]
+                .apply(
+                    finalDataProvider,
+                    typeof params.resource !== 'undefined'
+                        ? [params.resource, params.payload, params.options]
+                        : [params.payload, params.options]
+                )
                 .then(({ data, total }) => {
                     setState({
                         data,
-                        total,
-                        loading: false,
+                        error: null,
                         loaded: true,
+                        loading: false,
+                        total,
                     });
                 })
                 .catch(errorFromResponse => {
                     setState({
+                        data: null,
                         error: errorFromResponse,
-                        loading: false,
                         loaded: false,
+                        loading: false,
+                        total: null,
                     });
                 });
         },
@@ -192,7 +197,7 @@ const useMutation = (
 
 export interface Mutation {
     type: string;
-    resource: string;
+    resource?: string;
     payload: object;
 }
 
@@ -299,9 +304,9 @@ const hasDeclarativeSideEffectsSupport = (
 };
 
 const sanitizeOptions = (args?: MutationOptions) => {
-    if (!args) return {};
+    if (!args) return { onSuccess: undefined };
     const { withDeclarativeSideEffectsSupport, ...options } = args;
-    return options;
+    return { onSuccess: undefined, ...options };
 };
 
 export default useMutation;

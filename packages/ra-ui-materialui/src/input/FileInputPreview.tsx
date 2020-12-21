@@ -1,6 +1,7 @@
-import React, { useEffect, ReactNode, FunctionComponent } from 'react';
+import * as React from 'react';
+import { useEffect, ReactNode, FunctionComponent } from 'react';
 import PropTypes from 'prop-types';
-import { makeStyles } from '@material-ui/core';
+import { makeStyles } from '@material-ui/core/styles';
 import RemoveCircle from '@material-ui/icons/RemoveCircle';
 import IconButton from '@material-ui/core/IconButton';
 import { useTranslate } from 'ra-core';
@@ -18,18 +19,21 @@ const useStyles = makeStyles(
 interface Props {
     children: ReactNode;
     className?: string;
+    classes?: object;
     onRemove: () => void;
     file: any;
 }
 
-const FileInputPreview: FunctionComponent<Props> = ({
-    children,
-    className,
-    onRemove,
-    file,
-    ...rest
-}) => {
-    const classes = useStyles(rest);
+const FileInputPreview: FunctionComponent<Props> = props => {
+    const {
+        children,
+        classes: classesOverride,
+        className,
+        onRemove,
+        file,
+        ...rest
+    } = props;
+    const classes = useStyles(props);
     const translate = useTranslate();
 
     useEffect(() => {

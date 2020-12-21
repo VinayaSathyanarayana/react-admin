@@ -1,7 +1,6 @@
 import React, {
     Fragment,
-    useState,
-    useCallback,
+    ReactEventHandler,
     FC,
     ReactElement,
     SyntheticEvent,
@@ -14,85 +13,55 @@ import classnames from 'classnames';
 import inflection from 'inflection';
 import {
     useTranslate,
-    useDelete,
-    useRefresh,
-    useNotify,
-    useRedirect,
-    CRUD_DELETE,
     Record,
     RedirectionSideEffect,
+    useDeleteWithConfirmController,
+    OnSuccess,
+    OnFailure,
+    useResourceContext,
 } from 'ra-core';
 
 import Confirm from '../layout/Confirm';
 import Button, { ButtonProps } from './Button';
 
-const DeleteWithConfirmButton: FC<DeleteWithConfirmButtonProps> = ({
-    basePath,
-    classes: classesOverride,
-    className,
-    confirmTitle = 'ra.message.delete_title',
-    confirmContent = 'ra.message.delete_content',
-    icon = defaultIcon,
-    label = 'ra.action.delete',
-    onClick,
-    record,
-    resource,
-    redirect: redirectTo = 'list',
-    ...rest
-}) => {
-    const [open, setOpen] = useState(false);
-    const translate = useTranslate();
-    const notify = useNotify();
-    const redirect = useRedirect();
-    const refresh = useRefresh();
-    const classes = useStyles({ classes: classesOverride });
-
-    const [deleteOne, { loading }] = useDelete(
-        resource,
-        record && record.id,
+const DeleteWithConfirmButton: FC<DeleteWithConfirmButtonProps> = props => {
+    const {
+        basePath,
+        classes: classesOverride,
+        className,
+        confirmTitle = 'ra.message.delete_title',
+        confirmContent = 'ra.message.delete_content',
+        icon = defaultIcon,
+        label = 'ra.action.delete',
+        onClick,
         record,
-        {
-            action: CRUD_DELETE,
-            onSuccess: () => {
-                notify('ra.notification.deleted', 'info', { smart_count: 1 });
-                redirect(redirectTo, basePath);
-                refresh();
-            },
-            onFailure: error =>
-                notify(
-                    typeof error === 'string'
-                        ? error
-                        : error.message || 'ra.notification.http_error',
-                    'warning'
-                ),
-            undoable: false,
-        }
-    );
-
-    const handleClick = e => {
-        setOpen(true);
-        e.stopPropagation();
-    };
-
-    const handleDialogClose = e => {
-        setOpen(false);
-        e.stopPropagation();
-    };
-
-    const handleDelete = useCallback(
-        event => {
-            deleteOne();
-            if (typeof onClick === 'function') {
-                onClick(event);
-            }
-        },
-        [deleteOne, onClick]
-    );
+        redirect = 'list',
+        onSuccess,
+        onFailure,
+        ...rest
+    } = props;
+    const translate = useTranslate();
+    const classes = useStyles(props);
+    const {
+        open,
+        loading,
+        handleDialogOpen,
+        handleDialogClose,
+        handleDelete,
+    } = useDeleteWithConfirmController({
+        record,
+        redirect,
+        basePath,
+        onClick,
+        onSuccess,
+        onFailure,
+    });
+    const resource = useResourceContext(props);
 
     return (
         <Fragment>
             <Button
-                onClick={handleClick}
+                onClick={handleDialogOpen}
                 label={label}
                 className={classnames(
                     'ra-delete-button',
@@ -100,7 +69,7 @@ const DeleteWithConfirmButton: FC<DeleteWithConfirmButtonProps> = ({
                     className
                 )}
                 key="button"
-                {...sanitizeRestProps(rest)}
+                {...rest}
             >
                 {icon}
             </Button>
@@ -110,13 +79,16 @@ const DeleteWithConfirmButton: FC<DeleteWithConfirmButtonProps> = ({
                 title={confirmTitle}
                 content={confirmContent}
                 translateOptions={{
-                    name: inflection.humanize(
-                        translate(`resources.${resource}.name`, {
-                            smart_count: 1,
-                            _: inflection.singularize(resource),
-                        }),
-                        true
-                    ),
+                    name: translate(`resources.${resource}.forcedCaseName`, {
+                        smart_count: 1,
+                        _: inflection.humanize(
+                            translate(`resources.${resource}.name`, {
+                                smart_count: 1,
+                                _: inflection.singularize(resource),
+                            }),
+                            true
+                        ),
+                    }),
                     id: record.id,
                 }}
                 onConfirm={handleDelete}
@@ -127,18 +99,6 @@ const DeleteWithConfirmButton: FC<DeleteWithConfirmButtonProps> = ({
 };
 
 const defaultIcon = <ActionDelete />;
-
-const sanitizeRestProps = ({
-    handleSubmit,
-    handleSubmitWithRedirect,
-    invalid,
-    label,
-    pristine,
-    saving,
-    submitOnEnter,
-    undoable,
-    ...rest
-}: DeleteWithConfirmButtonProps) => rest;
 
 const useStyles = makeStyles(
     theme => ({
@@ -164,11 +124,11 @@ interface Props {
     confirmContent?: string;
     icon?: ReactElement;
     label?: string;
-    onClick?: (e: MouseEvent) => void;
+    onClick?: ReactEventHandler<any>;
     record?: Record;
     redirect?: RedirectionSideEffect;
     resource?: string;
-    // May be injected by Toolbar - sanitized in DeleteWithConfirButton
+    // May be injected by Toolbar - sanitized in Button
     handleSubmit?: (event?: SyntheticEvent<HTMLFormElement>) => Promise<Object>;
     handleSubmitWithRedirect?: (redirect?: RedirectionSideEffect) => void;
     invalid?: boolean;
@@ -176,9 +136,11 @@ interface Props {
     saving?: boolean;
     submitOnEnter?: boolean;
     undoable?: boolean;
+    onSuccess?: OnSuccess;
+    onFailure?: OnFailure;
 }
 
-type DeleteWithConfirmButtonProps = Props & ButtonProps;
+export type DeleteWithConfirmButtonProps = Props & ButtonProps;
 
 DeleteWithConfirmButton.propTypes = {
     basePath: PropTypes.string,

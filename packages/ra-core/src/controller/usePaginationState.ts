@@ -1,19 +1,28 @@
 import { useEffect, useReducer, useCallback, useRef } from 'react';
-import { Pagination } from '../types';
+import { PaginationPayload } from '../types';
 
-interface PaginationProps {
+/**
+ * @typedef PaginationProps
+ * @type {Object}
+ * @property {number} page: The page number.
+ * @property {number} perPage: The number of item per page.
+ * @property {Function} setPage: Set the page number
+ * @property {Function} setPerPage: Set the per page number
+ * @property {Function} setPagination: Set page and perPage pagination numbers
+ */
+export interface PaginationHookResult {
     page: number;
     perPage: number;
-    pagination: Pagination;
+    pagination: PaginationPayload;
     setPage: (page: number) => void;
     setPerPage: (perPage: number) => void;
-    setPagination: (pagination: Pagination) => void;
+    setPagination: (pagination: PaginationPayload) => void;
 }
 
 const paginationReducer = (
-    prevState: Pagination,
-    nextState: Partial<Pagination>
-): Pagination => {
+    prevState: PaginationPayload,
+    nextState: Partial<PaginationPayload>
+): PaginationPayload => {
     return {
         ...prevState,
         ...nextState,
@@ -26,21 +35,6 @@ const defaultPagination = {
 };
 
 /**
- * @name setNumber
- * @function
- * @param {number} state the state value
- */
-
-/**
- * @typedef PaginationProps
- * @type {Object}
- * @property {number} page: The page number.
- * @property {number} perPage: The number of item per page.
- * @property {setNumber} setPage: Set the page number
- * @property {setNumber} setPerPage: Set the per page number
- */
-
-/**
  * Hooks to provide pagination state (apge and perPage)
  *
  * @example
@@ -48,11 +42,11 @@ const defaultPagination = {
  * const { page, setpage, perPage, setPerPage } = usePagination(initialPerPage);
  *
  * @param {number} initialPagination the initial value per page
- * @returns {PaginationProps} The pagination props
+ * @returns {PaginationHookResult} The pagination props
  */
 export default (
     initialPagination: { perPage?: number; page?: number } = {}
-): PaginationProps => {
+): PaginationHookResult => {
     const [pagination, setPagination] = useReducer(paginationReducer, {
         ...defaultPagination,
         ...initialPagination,

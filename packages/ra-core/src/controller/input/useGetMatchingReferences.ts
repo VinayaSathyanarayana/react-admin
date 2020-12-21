@@ -1,14 +1,19 @@
 import { useCallback } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 
-import { Filter } from '../useFilterState';
 import { crudGetMatchingAccumulate } from '../../actions/accumulateActions';
+import { useResourceContext } from '../../core';
 import {
     getPossibleReferences,
     getPossibleReferenceValues,
     getReferenceResource,
 } from '../../reducer';
-import { Pagination, Sort, Record } from '../../types';
+import {
+    PaginationPayload,
+    SortPayload,
+    Record,
+    FilterPayload,
+} from '../../types';
 import { useDeepCompareEffect } from '../../util/hooks';
 
 interface UseMatchingReferencesOption {
@@ -16,9 +21,9 @@ interface UseMatchingReferencesOption {
     referenceSource: (resource: string, source: string) => string;
     resource: string;
     source: string;
-    filter: Filter;
-    pagination: Pagination;
-    sort: Sort;
+    filter: FilterPayload;
+    pagination: PaginationPayload;
+    sort: SortPayload;
     id: string;
 }
 
@@ -31,16 +36,19 @@ interface UseMatchingReferencesProps {
 const defaultReferenceSource = (resource: string, source: string) =>
     `${resource}@${source}`;
 
-export default ({
-    reference,
-    referenceSource = defaultReferenceSource,
-    resource,
-    source,
-    filter,
-    pagination,
-    sort,
-    id,
-}: UseMatchingReferencesOption): UseMatchingReferencesProps => {
+export default (
+    props: UseMatchingReferencesOption
+): UseMatchingReferencesProps => {
+    const {
+        reference,
+        referenceSource = defaultReferenceSource,
+        source,
+        filter,
+        pagination,
+        sort,
+        id,
+    } = props;
+    const resource = useResourceContext(props);
     const dispatch = useDispatch();
 
     useDeepCompareEffect(() => {
@@ -66,7 +74,6 @@ export default ({
 
     const matchingReferences = useGetMatchingReferenceSelector({
         referenceSource,
-        filter,
         reference,
         resource,
         source,
@@ -98,7 +105,6 @@ export default ({
 
 const useGetMatchingReferenceSelector = ({
     referenceSource,
-    filter,
     reference,
     resource,
     source,
@@ -109,6 +115,15 @@ const useGetMatchingReferenceSelector = ({
             const referenceResource = getReferenceResource(state, {
                 reference,
             });
+            if (
+                // resources are registered
+                Object.keys(state.admin.resources).length > 0 &&
+                // no registered resource matching the reference
+                !referenceResource
+            ) {
+                throw new Error(`Cannot fetch a reference to "${reference}" (unknown resource).
+You must add <Resource name="${reference}" /> as child of <Admin> to use "${reference}" in a reference`);
+            }
             const possibleValues = getPossibleReferenceValues(state, {
                 referenceSource,
                 resource,

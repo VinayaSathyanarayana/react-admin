@@ -49,6 +49,7 @@ export default ({
                       ...state,
                       admin: {
                           ...state.admin,
+                          loading: 0,
                           resources: {},
                           customQueries: {},
                           references: { oneToMany: {}, possibleValues: {} },
@@ -62,7 +63,7 @@ export default ({
         );
     };
     const sagaMiddleware = createSagaMiddleware();
-    const typedWindow = window as Window;
+    const typedWindow = typeof window !== 'undefined' && (window as Window);
 
     const composeEnhancers =
         (process.env.NODE_ENV === 'development' &&

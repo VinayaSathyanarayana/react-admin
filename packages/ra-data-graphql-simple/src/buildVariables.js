@@ -25,7 +25,8 @@ const sanitizeValue = (type, value) => {
 };
 
 const castType = (value, type) => {
-    switch (`${type.kind}:${type.name}`) {
+    const realType = type.kind === 'NON_NULL' ? type.ofType : type;
+    switch (`${realType.kind}:${realType.name}`) {
         case 'SCALAR:Int':
             return Number(value);
 
@@ -270,14 +271,18 @@ export default introspectionResults => (
                 filter: { ids: preparedParams.ids },
             };
         case GET_MANY_REFERENCE: {
-            const parts = preparedParams.target.split('.');
             let variables = buildGetListVariables(introspectionResults)(
                 resource,
                 aorFetchType,
                 preparedParams,
                 queryType
             );
-            variables.filter[`${parts[0]}Id`] = preparedParams.id;
+
+            variables.filter = {
+                ...variables.filter,
+                [preparedParams.target]: preparedParams.id,
+            };
+
             return variables;
         }
         case GET_ONE:

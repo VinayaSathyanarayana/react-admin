@@ -1,5 +1,7 @@
 import React, {
     HtmlHTMLAttributes,
+    ComponentType,
+    createElement,
     ReactNode,
     useRef,
     useEffect,
@@ -7,30 +9,28 @@ import React, {
 } from 'react';
 import PropTypes from 'prop-types';
 import classnames from 'classnames';
-import {
-    Card,
-    Avatar,
-    createMuiTheme,
-    makeStyles,
-    Theme,
-} from '@material-ui/core';
+import { Card, Avatar, Theme } from '@material-ui/core';
+import { createMuiTheme, makeStyles } from '@material-ui/core/styles';
 import { ThemeProvider } from '@material-ui/styles';
 import LockIcon from '@material-ui/icons/Lock';
 import { StaticContext } from 'react-router';
 import { useHistory } from 'react-router-dom';
-import { useCheckAuth } from 'ra-core';
+import { useCheckAuth, TitleComponent } from 'ra-core';
 
 import defaultTheme from '../defaultTheme';
-import Notification from '../layout/Notification';
+import DefaultNotification from '../layout/Notification';
 import DefaultLoginForm from './LoginForm';
 
-interface Props {
+export interface LoginProps
+    extends Omit<HtmlHTMLAttributes<HTMLDivElement>, 'title'> {
     backgroundImage?: string;
-    children: ReactNode;
+    children?: ReactNode;
     classes?: object;
     className?: string;
+    notification?: ComponentType;
     staticContext?: StaticContext;
-    theme: object;
+    theme?: object;
+    title?: TitleComponent;
 }
 
 const useStyles = makeStyles(
@@ -44,6 +44,8 @@ const useStyles = makeStyles(
             justifyContent: 'flex-start',
             backgroundRepeat: 'no-repeat',
             backgroundSize: 'cover',
+            backgroundImage:
+                'radial-gradient(circle at 50% 14em, #313264 0%, #00023b 60%, #00023b 100%)',
         },
         card: {
             minWidth: 300,
@@ -79,19 +81,20 @@ const useStyles = makeStyles(
  *        </Admin>
  *     );
  */
-const Login: React.FunctionComponent<
-    Props & HtmlHTMLAttributes<HTMLDivElement>
-> = ({
-    theme,
-    classes: classesOverride,
-    className,
-    children,
-    staticContext,
-    backgroundImage,
-    ...rest
-}) => {
+const Login: React.FunctionComponent<LoginProps> = props => {
+    const {
+        theme,
+        title,
+        classes: classesOverride,
+        className,
+        children,
+        notification,
+        staticContext,
+        backgroundImage,
+        ...rest
+    } = props;
     const containerRef = useRef<HTMLDivElement>();
-    const classes = useStyles({ classes: classesOverride });
+    const classes = useStyles(props);
     const muiTheme = useMemo(() => createMuiTheme(theme), [theme]);
     let backgroundImageLoaded = false;
     const checkAuth = useCheckAuth();
@@ -144,7 +147,7 @@ const Login: React.FunctionComponent<
                     </div>
                     {children}
                 </Card>
-                <Notification />
+                {notification ? createElement(notification) : null}
             </div>
         </ThemeProvider>
     );
@@ -160,9 +163,9 @@ Login.propTypes = {
 };
 
 Login.defaultProps = {
-    backgroundImage: 'https://source.unsplash.com/random/1600x900/daily',
     theme: defaultTheme,
     children: <DefaultLoginForm />,
+    notification: DefaultNotification,
 };
 
 export default Login;

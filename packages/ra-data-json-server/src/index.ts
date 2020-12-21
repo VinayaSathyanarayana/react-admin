@@ -19,7 +19,7 @@ import { fetchUtils, DataProvider } from 'ra-core';
  *
  * @example
  *
- * import React from 'react';
+ * import * as React from "react";
  * import { Admin, Resource } from 'react-admin';
  * import jsonServerProvider from 'ra-data-json-server';
  *
@@ -55,10 +55,7 @@ export default (apiUrl, httpClient = fetchUtils.fetchJson): DataProvider => ({
             return {
                 data: json,
                 total: parseInt(
-                    headers
-                        .get('x-total-count')
-                        .split('/')
-                        .pop(),
+                    headers.get('x-total-count').split('/').pop(),
                     10
                 ),
             };
@@ -100,10 +97,7 @@ export default (apiUrl, httpClient = fetchUtils.fetchJson): DataProvider => ({
             return {
                 data: json,
                 total: parseInt(
-                    headers
-                        .get('x-total-count')
-                        .split('/')
-                        .pop(),
+                    headers.get('x-total-count').split('/').pop(),
                     10
                 ),
             };

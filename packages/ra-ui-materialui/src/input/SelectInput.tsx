@@ -1,62 +1,56 @@
-import React, { useCallback, FunctionComponent } from 'react';
+import * as React from 'react';
+import { useCallback, FunctionComponent } from 'react';
 import PropTypes from 'prop-types';
 import get from 'lodash/get';
 import MenuItem from '@material-ui/core/MenuItem';
+import { TextFieldProps } from '@material-ui/core/TextField';
 import { makeStyles } from '@material-ui/core/styles';
 import {
     useInput,
     FieldTitle,
     useTranslate,
-    InputProps,
-    ChoicesProps,
+    ChoicesInputProps,
     useChoices,
+    warning,
 } from 'ra-core';
 
 import ResettableTextField from './ResettableTextField';
 import InputHelperText from './InputHelperText';
-import { TextFieldProps } from '@material-ui/core/TextField';
+import sanitizeInputRestProps from './sanitizeInputRestProps';
 
 const sanitizeRestProps = ({
     addLabel,
-    allowEmpty,
-    alwaysOn,
-    emptyValue,
-    basePath,
+    afterSubmit,
+    allowNull,
+    beforeSubmit,
     choices,
     className,
-    component,
     crudGetMatching,
     crudGetOne,
-    defaultValue,
+    data,
     filter,
     filterToQuery,
-    formClassName,
-    initializeForm,
-    input,
-    isRequired,
-    label,
-    locale,
-    meta,
-    onChange,
-    options,
-    optionValue,
-    optionText,
-    disableValue,
+    formatOnBlur,
+    isEqual,
+    limitChoicesToValue,
+    multiple,
+    name,
+    pagination,
     perPage,
-    record,
+    ref,
     reference,
-    resource,
+    render,
     setFilter,
     setPagination,
     setSort,
     sort,
-    source,
-    textAlign,
-    translate,
-    translateChoice,
+    subscription,
+    type,
+    validateFields,
     validation,
+    value,
     ...rest
-}: any) => rest;
+}: any) => sanitizeInputRestProps(rest);
 
 const useStyles = makeStyles(
     theme => ({
@@ -142,34 +136,46 @@ const useStyles = makeStyles(
  *
  */
 const SelectInput: FunctionComponent<
-    ChoicesProps &
-        InputProps<TextFieldProps> &
+    ChoicesInputProps<TextFieldProps> &
         Omit<TextFieldProps, 'label' | 'helperText'>
-> = ({
-    allowEmpty,
-    choices = [],
-    className,
-    disableValue,
-    emptyText,
-    emptyValue,
-    format,
-    helperText,
-    label,
-    onBlur,
-    onChange,
-    onFocus,
-    options,
-    optionText,
-    optionValue,
-    parse,
-    resource,
-    source,
-    translateChoice,
-    validate,
-    ...rest
-}) => {
+> = props => {
+    const {
+        allowEmpty,
+        choices = [],
+        classes: classesOverride,
+        className,
+        disableValue,
+        emptyText,
+        emptyValue,
+        format,
+        helperText,
+        label,
+        onBlur,
+        onChange,
+        onFocus,
+        options,
+        optionText,
+        optionValue,
+        parse,
+        resource,
+        source,
+        translateChoice,
+        validate,
+        ...rest
+    } = props;
     const translate = useTranslate();
-    const classes = useStyles({});
+    const classes = useStyles(props);
+
+    warning(
+        source === undefined,
+        `If you're not wrapping the SelectInput inside a ReferenceInput, you must provide the source prop`
+    );
+
+    warning(
+        choices === undefined,
+        `If you're not wrapping the SelectInput inside a ReferenceInput, you must provide the choices prop`
+    );
+
     const { getChoiceText, getChoiceValue } = useChoices({
         optionText,
         optionValue,
@@ -196,6 +202,8 @@ const SelectInput: FunctionComponent<
     const renderEmptyItemOption = useCallback(() => {
         return React.isValidElement(emptyText)
             ? React.cloneElement(emptyText)
+            : emptyText === ''
+            ? ' ' // em space, forces the display of an empty line of normal height
             : translate(emptyText, { _: emptyText });
     }, [emptyText, translate]);
 
@@ -223,13 +231,11 @@ const SelectInput: FunctionComponent<
             clearAlwaysVisible
             error={!!(touched && error)}
             helperText={
-                (touched && error) || helperText ? (
-                    <InputHelperText
-                        touched={touched}
-                        error={error}
-                        helperText={helperText}
-                    />
-                ) : null
+                <InputHelperText
+                    touched={touched}
+                    error={error}
+                    helperText={helperText}
+                />
             }
             {...options}
             {...sanitizeRestProps(rest)}
@@ -258,7 +264,7 @@ const SelectInput: FunctionComponent<
 };
 
 SelectInput.propTypes = {
-    allowEmpty: PropTypes.bool.isRequired,
+    allowEmpty: PropTypes.bool,
     emptyText: PropTypes.oneOfType([PropTypes.string, PropTypes.element]),
     emptyValue: PropTypes.any,
     choices: PropTypes.arrayOf(PropTypes.object),
@@ -273,13 +279,13 @@ SelectInput.propTypes = {
     ]).isRequired,
     optionValue: PropTypes.string.isRequired,
     disableValue: PropTypes.string,
+    resettable: PropTypes.bool,
     resource: PropTypes.string,
     source: PropTypes.string,
     translateChoice: PropTypes.bool,
 };
 
 SelectInput.defaultProps = {
-    allowEmpty: false,
     emptyText: '',
     emptyValue: '',
     options: {},

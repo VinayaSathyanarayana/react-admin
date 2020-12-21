@@ -1,14 +1,15 @@
-# React-admin simple
+# React-admin Simple Example
 
-This is the application we use for our end to end tests.
+This is the application we use for our end to end tests, and for reproducing bugs via CodeSandbox.
 
 ## How to run
 
-After having cloned the react-admin repository, run the following commands:
+From the react-admin repository:
 
 ```sh
+# install the dependencies for the monorepo
 make install
-
+# run the app in extended watch mode (reloads when a change is detected in the app code and in the packages code)
 make run-simple
 ```
 

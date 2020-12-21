@@ -20,19 +20,32 @@ Here are all the props accepted by the `<Show>` component:
 * [`aside`](#aside-component)
 * [`component`](#component)
 
+### CSS API
+
+The `<Show>` component accepts the usual `className` prop but you can override many class names injected to the inner components by React-admin thanks to the `classes` property (as most Material UI components, see their [documentation about it](https://material-ui.com/customization/components/#overriding-styles-with-classes)). This property accepts the following keys:
+
+| Rule name   | Description                                                                                |
+| ----------- | ------------------------------------------------------------------------------------------ |
+| `root`      | Alternative to using `className`. Applied to the root element                              |
+| `main`      | Applied to the main container                                                              |
+| `noActions` | Applied to the main container when `actions` prop is `false`                               |
+| `card`      | Applied to the child component inside the main container (Material UI's `Card` by default) |
+
+To override the style of all instances of `<Show>` using the [material-ui style overrides](https://material-ui.com/customization/globals/#css), use the `RaShow` key.
+
 Here is the minimal code necessary to display a view to show a post:
 
 {% raw %}
 ```jsx
 // in src/App.js
-import React from 'react';
+import * as React from "react";
 import { Admin, Resource } from 'react-admin';
 import jsonServerProvider from 'ra-data-json-server';
 
 import { PostCreate, PostEdit, PostShow } from './posts';
 
 const App = () => (
-    <Admin dataProvider={jsonServerProvider('http://jsonplaceholder.typicode.com')}>
+    <Admin dataProvider={jsonServerProvider('https://jsonplaceholder.typicode.com')}>
         <Resource name="posts" show={PostShow} create={PostCreate} edit={PostEdit} />
     </Admin>
 );
@@ -40,8 +53,8 @@ const App = () => (
 export default App;
 
 // in src/posts.js
-import React from 'react';
-import { Show, SimpleShowLayout, TextField, DateField, EditButton, RichTextField } from 'react-admin';
+import * as React from "react";
+import { Show, SimpleShowLayout, TextField, DateField, RichTextField } from 'react-admin';
 
 export const PostShow = (props) => (
     <Show {...props}>
@@ -150,7 +163,7 @@ const Aside = ({ record }) => (
 ```
 {% endraw %}
 
-**Tip**: Always test that the `record` is defined before using it, as react-admin starts rendering the UI before the API call is over.
+**Tip**: Always test the `record` is defined before using it, as react-admin starts rendering the UI before the API call is over.
 
 ### Component
 
@@ -182,12 +195,12 @@ Instead of a custom `Show`, you can use the `ShowGuesser` to determine which fie
 
 ```jsx
 // in src/App.js
-import React from 'react';
+import * as React from "react";
 import { Admin, Resource, ShowGuesser } from 'react-admin';
 import jsonServerProvider from 'ra-data-json-server';
 
 const App = () => (
-    <Admin dataProvider={jsonServerProvider('http://jsonplaceholder.typicode.com')}>
+    <Admin dataProvider={jsonServerProvider('https://jsonplaceholder.typicode.com')}>
         <Resource name="posts" show={ShowGuesser} />
     </Admin>
 );
@@ -200,6 +213,56 @@ Just like `Show`, `ShowGuesser` fetches the data. It then analyzes the response,
 React-admin provides guessers for the `List` view (`ListGuesser`), the `Edit` view (`EditGuesser`), and the `Show` view (`ShowGuesser`).
 
 **Tip**: Do not use the guessers in production. They are slower than manually-defined components, because they have to infer types based on the content. Besides, the guesses are not always perfect.
+
+## `useShowController`
+
+The `<Show>` component takes care of two things:
+
+1. (the "controller") Fetching data based on the URL and transforming it
+2. (the "view") Rendering the page title, the actions, the content and aside areas 
+
+In some cases, you may want to customize the view entirely (i.e. keep the code for step 1, and provide your own code for step 2). For these cases, react-admin provides a hook called `useShowController()`, which contains just the controller part of the `<Show>` component.
+
+This hook takes one object as input (the props passed to a `<Show>` component) and returns the fetched data for the Show view. You can use it to create your own custom Show view, like this one:
+
+```jsx
+import { useShowController, SimpleShowLayout } from 'react-admin';
+
+const MyShow = props => {
+    const {
+        basePath, // deduced from the location, useful for action buttons
+        defaultTitle, // the translated title based on the resource, e.g. 'Post #123'
+        loaded, // boolean that is false until the record is available
+        loading, // boolean that is true on mount, and false once the record was fetched
+        record, // record fetched via dataProvider.getOne() based on the id from the location
+        resource, // the resource name, deduced from the location. e.g. 'posts'
+        version, // integer used by the refresh feature
+    } = useShowController(props);
+    return (
+        <div>
+            <h1>{defaultTitle}</h1>
+            {cloneElement(props.children, {
+                basePath,
+                record,
+                resource,
+                version,
+            })}
+        </div>
+    );
+}
+
+const PostShow = props => (
+    <MyShow {...props}>
+        <SimpleShowLayout>
+            ...
+        </SimpleShowLayout>
+    </MyShow>
+)
+```
+
+This custom Show view has no action buttons or aside component - it's up to you to add them in pure React.
+
+**Tip**: You don't have to clone the child element. If you can't reuse an existing form component like `<SimpleShowLayout>`, feel free to write the form code inside your custom `MyShow` component. 
 
 ## The `<SimpleShowLayout>` component
 
@@ -293,6 +356,12 @@ const ScrollableTabbedShowLayout = props => (
 export default ScrollableTabbedShowLayout;
 
 ```
+
+## Third-Party Components
+
+You can find components for react-admin in third-party repositories.
+
+- [ra-compact-ui](https://github.com/ValentinnDimitroff/ra-compact-ui#layouts): plugin that allows to have custom styled show layouts.
 
 ## Displaying Fields depending on the user permissions
 

@@ -13,7 +13,7 @@ import { Identifier } from '../types';
  *
  * @param resource The resource name, e.g. 'posts'
  * @param ids The resource identifiers, e.g. [123, 456]
- * @param options Options object to pass to the dataProvider. May include side effects to be executed upon success of failure, e.g. { onSuccess: { refresh: true } }
+ * @param options Options object to pass to the dataProvider. May include side effects to be executed upon success or failure, e.g. { onSuccess: { refresh: true } }
  *
  * @returns The current request state. Destructure as [delete, { data, error, loading, loaded }].
  *
@@ -27,7 +27,7 @@ import { Identifier } from '../types';
  *     return <button disabled={loading} onClick={deleteMany}>Delete selected posts</button>;
  * };
  */
-const useDeleteMany = (resource: string, ids: [Identifier], options?: any) =>
+const useDeleteMany = (resource: string, ids: Identifier[], options?: any) =>
     useMutation({ type: 'deleteMany', resource, payload: { ids } }, options);
 
 export default useDeleteMany;

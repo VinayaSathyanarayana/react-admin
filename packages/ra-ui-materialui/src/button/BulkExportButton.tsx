@@ -1,26 +1,32 @@
-import React, { useCallback, useContext, FunctionComponent } from 'react';
+import * as React from 'react';
+import { useCallback, FunctionComponent } from 'react';
 import PropTypes from 'prop-types';
 import DownloadIcon from '@material-ui/icons/GetApp';
 import {
     fetchRelatedRecords,
     useDataProvider,
     useNotify,
-    DataProvider,
     Identifier,
-    ExporterContext,
+    Exporter,
+    useListContext,
 } from 'ra-core';
 
 import Button, { ButtonProps } from './Button';
 
-const BulkExportButton: FunctionComponent<BulkExportButtonProps> = ({
-    resource,
-    selectedIds,
-    onClick,
-    label = 'ra.action.export',
-    icon = defaultIcon,
-    ...rest
-}) => {
-    const exporter = useContext(ExporterContext);
+const BulkExportButton: FunctionComponent<BulkExportButtonProps> = props => {
+    const {
+        onClick,
+        label = 'ra.action.export',
+        icon = defaultIcon,
+        exporter: customExporter,
+        ...rest
+    } = props;
+    const {
+        exporter: exporterFromContext,
+        resource,
+        selectedIds,
+    } = useListContext(props);
+    const exporter = customExporter || exporterFromContext;
     const dataProvider = useDataProvider();
     const notify = useNotify();
     const handleClick = useCallback(
@@ -63,23 +69,14 @@ const defaultIcon = <DownloadIcon />;
 const sanitizeRestProps = ({
     basePath,
     filterValues,
+    selectedIds,
+    resource,
     ...rest
-}: Omit<
-    BulkExportButtonProps,
-    'exporter' | 'selectedIds' | 'resource' | 'label'
->) => rest;
+}: Omit<BulkExportButtonProps, 'exporter' | 'label'>) => rest;
 
 interface Props {
     basePath?: string;
-    exporter?: (
-        data: any,
-        fetchRelatedRecords: (
-            data: any,
-            field: string,
-            resource: string
-        ) => Promise<any>,
-        dataProvider: DataProvider
-    ) => Promise<void>;
+    exporter?: Exporter;
     filterValues?: any;
     icon?: JSX.Element;
     label?: string;

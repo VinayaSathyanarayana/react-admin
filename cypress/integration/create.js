@@ -43,13 +43,31 @@ describe('Create Page', () => {
             .get(CreatePage.elements.input('backlinks[0].date'))
             .parents('.ra-input-backlinks');
         backlinksContainer.contains('Remove').click();
-        CreatePage.submit();
-        backlinksContainer.contains('Required');
+        CreatePage.setValues([
+            {
+                type: 'input',
+                name: 'title',
+                value: 'foo',
+            },
+            {
+                type: 'textarea',
+                name: 'teaser',
+                value: 'foo',
+            },
+            {
+                type: 'rich-text-input',
+                name: 'body',
+                value: 'foo',
+            },
+        ]);
+        cy.get(CreatePage.elements.submitButton).click();
+        cy.get('.ra-input-backlinks').contains('Required');
     });
 
     it('should have a working array input with references', () => {
         CreatePage.logout();
         LoginPage.login('admin', 'password');
+        CreatePage.navigate();
         CreatePage.waitUntilVisible();
         cy.get(CreatePage.elements.addAuthor).click();
         cy.get(CreatePage.elements.input('authors[0].user_id')).should(
@@ -63,6 +81,7 @@ describe('Create Page', () => {
     it('should have a working array input with a scoped FormDataConsumer', () => {
         CreatePage.logout();
         LoginPage.login('admin', 'password');
+        CreatePage.navigate();
         CreatePage.waitUntilVisible();
         cy.get(CreatePage.elements.addAuthor).click();
         CreatePage.setValues([
@@ -72,7 +91,7 @@ describe('Create Page', () => {
                 value: 'Annamarie Mayer',
             },
         ]);
-        cy.contains('Annamarie Mayer').click();
+        cy.get('div[role="listbox"] li').trigger('click');
         cy.get(CreatePage.elements.input('authors[0].role')).should(
             el => expect(el).to.exist
         );
@@ -99,6 +118,38 @@ describe('Create Page', () => {
 
         CreatePage.setValues(values);
         CreatePage.submit();
+        EditPage.waitUntilVisible();
+        cy.get(EditPage.elements.input('title')).should(el =>
+            expect(el).to.have.value('Test title')
+        );
+        cy.get(EditPage.elements.input('teaser')).should(el =>
+            expect(el).to.have.value('Test teaser')
+        );
+
+        EditPage.delete();
+    });
+
+    it('should redirect to edit page after submit on enter', () => {
+        const values = [
+            {
+                type: 'input',
+                name: 'title',
+                value: 'Test title',
+            },
+            {
+                type: 'textarea',
+                name: 'teaser',
+                value: 'Test teaser',
+            },
+            {
+                type: 'rich-text-input',
+                name: 'body',
+                value: 'Test body',
+            },
+        ];
+
+        CreatePage.setValues(values);
+        CreatePage.submitWithKeyboard();
         EditPage.waitUntilVisible();
         cy.get(EditPage.elements.input('title')).should(el =>
             expect(el).to.have.value('Test title')
@@ -221,7 +272,7 @@ describe('Create Page', () => {
         ];
         CreatePage.setValues(values);
         cy.get(CreatePage.elements.input('average_note')).should(el =>
-            expect(el).to.have.value('5')
+            expect(el).to.have.value('0')
         );
         cy.get(CreatePage.elements.input('title')).should(el =>
             expect(el).to.have.value('Test title')
@@ -231,6 +282,7 @@ describe('Create Page', () => {
     it('should not reset the form value when switching tabs', () => {
         CreatePage.logout();
         LoginPage.login('admin', 'password');
+        CreatePage.navigate();
         CreatePage.waitUntilVisible();
         UserCreatePage.navigate();
 
@@ -249,10 +301,18 @@ describe('Create Page', () => {
     });
 
     it('should not show rich text input error message when field is untouched', () => {
-        cy.get(CreatePage.elements.richTextInputError).should('not.exist');
+        cy.get(CreatePage.elements.richTextInputError).should('not.have.value');
     });
 
     it('should show rich text input error message when form is submitted', () => {
+        const values = [
+            {
+                type: 'input',
+                name: 'title',
+                value: 'Test title',
+            },
+        ];
+        CreatePage.setValues(values);
         CreatePage.submit();
         cy.get(CreatePage.elements.richTextInputError)
             .should('exist')
@@ -260,6 +320,14 @@ describe('Create Page', () => {
     });
 
     it('should not show rich text input error message when form is submitted and input is filled with text', () => {
+        const values = [
+            {
+                type: 'input',
+                name: 'title',
+                value: 'Test title',
+            },
+        ];
+        CreatePage.setValues(values);
         CreatePage.submit();
         cy.get(CreatePage.elements.richTextInputError)
             .should('exist')
