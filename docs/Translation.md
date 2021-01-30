@@ -186,6 +186,7 @@ You can find translation packages for the following languages:
 - Korean (`ko`): [acidsound/ra-language-korean](https://github.com/acidsound/ra-language-korean)
 - Latvian (`lv`): [tui-ru/ra-language-latvian](https://github.com/tui-ru/ra-language-latvian)
 - Lithuanian (`lt`): [tui-ru/ra-language-lithuanian](https://github.com/tui-ru/ra-language-lithuanian)
+- Malay (`ms`): [kayuapi/ra-language-malay](https://github.com/kayuapi/ra-language-malay.git)
 - Norwegian (`no`): [jon-harald/ra-language-norwegian](https://github.com/jon-harald/ra-language-norwegian)
 - Polish (`pl`): [tskorupka/ra-language-polish](https://github.com/tskorupka/ra-language-polish)
 - Portuguese (`pt`): [henriko202/ra-language-portuguese](https://github.com/henriko202/ra-language-portuguese)
@@ -696,3 +697,27 @@ const i18nProvider = polyglotI18nProvider(locale =>
 **Tip**: Check [the Polyglot documentation](https://airbnb.io/polyglot.js/#options-overview) for a list of options you can pass to Polyglot at startup. 
 
 This solution is all-or-nothing: you can't silence only *some* missing translation warnings. An alternative solution consists of passing a default translation using the `_` translation option, as explained in the [Using Specific Polyglot Features section](#using-specific-polyglot-features) above. 
+
+## Translating Record Fields
+
+Some of your records may contain fields that are translated in multiple languages. It's common, in such cases, to offer an interface allowing admin users to see and edit each translation. React-admin provides 2 components for that:
+
+- To display translatable fields, use the [`<TranslatableFields>`](/Fields.html#translatable-fields) component
+- To edit translatable fields, use the [`<TranslatableInputs>`](/Inputs.html#translatable-inputs) component
+
+They both expect the translatable values to have the following structure:
+
+```js
+{
+    name: {
+        en: 'The english value',
+        fr: 'The french value',
+        tlh: 'The klingon value',
+    },
+    description: {
+        en: 'The english value',
+        fr: 'The french value',
+        tlh: 'The klingon value',
+    }
+}
+```

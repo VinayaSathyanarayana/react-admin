@@ -17,6 +17,20 @@ The `<List>` component fetches the list of records from the data provider, and r
 
 Here is the minimal code necessary to display a list of posts using a `<Datagrid>`:
 
+* [`title`](#page-title)
+* [`actions`](#actions)
+* [`exporter`](#exporter)
+* [`bulkActionButtons`](#bulk-action-buttons)
+* [`filters`](#filters) (a React element used to display the filter form)
+* [`filterDefaultValues`](#filter-default-values) (the default values for `alwaysOn` filters)
+* [`perPage`](#records-per-page)
+* [`sort`](#default-sort-field)
+* [`filter`](#permanent-filter) (the permanent filter used in the REST request)
+* [`pagination`](#pagination)
+* [`aside`](#aside-component)
+* [`empty`](#empty-page)
+- [`syncWithLocation`](#synchronize-with-url)
+
 ```jsx
 // in src/posts.js
 import * as React from "react";
@@ -729,6 +743,31 @@ const PostList = props => (
 
 The default value for the `component` prop is `Card`.
 
+## Synchronize With URL
+
+When a List based component (eg: `PostList`) is passed to the `list` prop of a `<Resource>`, it will automatically synchronize its parameters with the browser URL (using react-router location). However, when used anywhere outside of a `<Resource>`, it won't synchronize, which can be useful when you have multiple lists on a single page for example.
+
+In order to enable the synchronization with the URL, you can set the `syncWithLocation` prop. For example, adding a `List` to an `Edit` page:
+
+{% raw %}
+```jsx
+const TagsEdit = (props) => (
+    <>
+        <Edit {...props}>
+            // ...
+        </Edit>
+        <ResourceProviderContext resource="posts">
+            <List syncWithLocation basePath="/posts" filter={{ tags: [id]}}>
+                <Datagri>
+                    <TextField source="title" />
+                </Datagrid>
+            </List>
+        </ResourceProviderContext>
+    </>
+)
+```
+{% endraw %}
+
 ### CSS API
 
 The `List` component accepts the usual `className` prop but you can override many class names injected to the inner components by React-admin thanks to the `classes` property (as most Material UI components, see their [documentation about it](https://material-ui.com/customization/components/#overriding-styles-with-classes)). This property accepts the following keys:
@@ -1400,7 +1439,7 @@ If you want to display a full-text search allowing to look for any record in the
 
 ![ra-search basic](https://marmelab.com/ra-enterprise/modules/assets/ra-search-overview.gif)
 
-`ra-search` can plug to any existing search engine (ElasticSearch, Lucene, or custom search engine), and lets you customize the search results to provide quick navigation to related items, turniun the search engine into an "Omnibox": 
+`ra-search` can plug to any existing search engine (ElasticSearch, Lucene, or custom search engine), and lets you customize the search results to provide quick navigation to related items, turning the search engine into an "Omnibox": 
 
 ![ra-search demo](https://marmelab.com/ra-enterprise/modules/assets/ra-search-demo.gif)
 
@@ -1912,7 +1951,7 @@ You can find many usage examples of `useListContext` in this page, including:
 - [Building an Aside Component](#aside-aside-component)
 - [Building a Custom Empty Page](#empty-empty-page-component)
 - [Building a Custom Filter](#building-a-custom-filter)
-- [Building a Custom Sort Control](##building-a-custom-sort-control)
+- [Building a Custom Sort Control](#building-a-custom-sort-control)
 - [Building a Custom Pagination Control](#building-a-custom-pagination-control)
 - [Building a Custom Iterator](#using-a-custom-iterator)
 
@@ -2318,12 +2357,22 @@ const PostList = props => (
 export default withStyles(styles)(PostList);
 ```
 
-**Tip**: You can use the `<Datagrid>` component with [custom queries](./Actions.md#usequery-hook), provided you pass the result to a `<ListContextProvider>`:
+### With Custom Query
+
+You can use the `<Datagrid>` component with [custom queries](./Actions.md#usequery-hook), provided you pass the result to a `<ListContextProvider>`:
 
 {% raw %}
 ```jsx
 import keyBy from 'lodash/keyBy'
-import { useQuery, Datagrid, TextField, Pagination, Loading, ListContextProvider } from 'react-admin'
+import {
+    useQuery,
+    ResourceContextProvider,
+    ListContextProvider
+    Datagrid,
+    TextField,
+    Pagination,
+    Loading,
+} from 'react-admin'
 
 const CustomList = () => {
     const [page, setPage] = useState(1);
@@ -2345,27 +2394,28 @@ const CustomList = () => {
         return <p>ERROR: {error}</p>
     }
     return (
-        <ListContextProvider
-            value={{
-                resource: 'posts',
-                basePath: '/posts',
-                data: keyBy(data, 'id'),
-                ids: data.map(({ id }) => id),
-                currentSort: { field: 'id', order: 'ASC' },
-                selectedIds: [],
-            }}
-        >
-            <Datagrid rowClick="edit">
-                <TextField source="id" />
-                <TextField source="title" />
-            </Datagrid>
-            <Pagination
-                page={page}
-                perPage={perPage}
-                setPage={setPage}
-                total={total}
-            />
-        </ListContextProvider>
+        <ResourceContextProvider value="posts">
+            <ListContextProvider
+                value={{
+                    basePath: '/posts',
+                    data: keyBy(data, 'id'),
+                    ids: data.map(({ id }) => id),
+                    currentSort: { field: 'id', order: 'ASC' },
+                    selectedIds: [],
+                }}
+            >
+                <Datagrid rowClick="edit">
+                    <TextField source="id" />
+                    <TextField source="title" />
+                </Datagrid>
+                <Pagination
+                    page={page}
+                    perPage={perPage}
+                    setPage={setPage}
+                    total={total}
+                />
+            </ListContextProvider>
+        </ResourceContextProvider>
     );
 }
 ```

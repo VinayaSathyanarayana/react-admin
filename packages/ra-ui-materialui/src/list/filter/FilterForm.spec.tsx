@@ -1,5 +1,5 @@
 import expect from 'expect';
-import { cleanup, fireEvent } from '@testing-library/react';
+import { fireEvent } from '@testing-library/react';
 import * as React from 'react';
 import { renderWithRedux } from 'ra-core';
 
@@ -36,7 +36,6 @@ describe('<FilterForm />', () => {
         );
         expect(queryAllByLabelText('Title')).toHaveLength(1);
         expect(queryAllByLabelText('Name')).toHaveLength(1);
-        cleanup();
     });
 
     describe('allowEmpty', () => {
@@ -68,7 +67,6 @@ describe('<FilterForm />', () => {
             fireEvent.mouseDown(select);
             const options = queryAllByRole('option');
             expect(options.length).toEqual(3);
-            cleanup();
         });
 
         it('should keep allowEmpty false', () => {
@@ -99,7 +97,6 @@ describe('<FilterForm />', () => {
             fireEvent.mouseDown(select);
             const options = queryAllByRole('option');
             expect(options.length).toEqual(2);
-            cleanup();
         });
 
         it('should keep allowEmpty true', () => {
@@ -130,12 +127,11 @@ describe('<FilterForm />', () => {
             fireEvent.mouseDown(select);
             const options = queryAllByRole('option');
             expect(options.length).toEqual(3);
-            cleanup();
         });
     });
 
     describe('mergeInitialValuesWithDefaultValues', () => {
-        it('should correctly merge initial values with the default values of the alwayson filters', () => {
+        it('should correctly merge initial values with the default values of the alwaysOn filters', () => {
             const initialValues = {
                 title: 'initial title',
             };

@@ -66,7 +66,10 @@ export const CreateView = (props: CreateViewProps) => {
                                 ? redirect
                                 : children.props.redirect,
                         resource,
-                        save,
+                        save:
+                            typeof children.props.save === 'undefined'
+                                ? save
+                                : children.props.save,
                         saving,
                         version,
                     })}
@@ -76,7 +79,10 @@ export const CreateView = (props: CreateViewProps) => {
                         basePath,
                         record,
                         resource,
-                        save,
+                        save:
+                            typeof children.props.save === 'undefined'
+                                ? save
+                                : children.props.save,
                         saving,
                         version,
                     })}
@@ -148,7 +154,9 @@ const sanitizeRestProps = ({
     loading = null,
     location = null,
     match = null,
+    onFailure = null,
     onFailureRef = null,
+    onSuccess = null,
     onSuccessRef = null,
     options = null,
     permissions = null,
@@ -157,6 +165,7 @@ const sanitizeRestProps = ({
     setOnFailure = null,
     setOnSuccess = null,
     setTransform = null,
+    transform = null,
     transformRef = null,
     ...rest
 }) => rest;

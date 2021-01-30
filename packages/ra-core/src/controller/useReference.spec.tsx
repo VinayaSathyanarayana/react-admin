@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { cleanup } from '@testing-library/react';
 import expect from 'expect';
 
 import renderWithRedux from '../util/renderWithRedux';
@@ -17,8 +16,6 @@ describe('useReference', () => {
         id: '1',
         reference: 'posts',
     };
-
-    afterEach(cleanup);
 
     it('should fetch reference on mount', async () => {
         const dataProvider = {
@@ -99,7 +96,7 @@ describe('useReference', () => {
         expect(dispatch).toBeCalledTimes(10);
     });
 
-    it('it should not refetch reference when other props change change', async () => {
+    it('it should not refetch reference when other props change', async () => {
         const dataProvider = {
             getMany: jest.fn(() =>
                 Promise.resolve({ data: [{ id: 1, title: 'foo' }] })

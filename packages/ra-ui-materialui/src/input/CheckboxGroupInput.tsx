@@ -14,6 +14,8 @@ import sanitizeInputRestProps from './sanitizeInputRestProps';
 import CheckboxGroupInputItem from './CheckboxGroupInputItem';
 import InputHelperText from './InputHelperText';
 import classnames from 'classnames';
+import Labeled from './Labeled';
+import { LinearProgress } from '../layout';
 
 const sanitizeRestProps = ({
     setFilter,
@@ -46,7 +48,7 @@ const useStyles = makeStyles(
  *
  * By default, the options are built from:
  *  - the 'id' property as the option value,
- *  - the 'name' property an the option text
+ *  - the 'name' property as the option text
  * @example
  * const choices = [
  *     { id: 12, name: 'Ray Hakt' },
@@ -108,6 +110,8 @@ const CheckboxGroupInput: FunctionComponent<
         format,
         helperText,
         label,
+        loaded,
+        loading,
         margin = 'dense',
         onBlur,
         onChange,
@@ -140,7 +144,7 @@ const CheckboxGroupInput: FunctionComponent<
         id,
         input: { onChange: finalFormOnChange, onBlur: finalFormOnBlur, value },
         isRequired,
-        meta: { error, touched },
+        meta: { error, submitError, touched },
     } = useInput({
         format,
         onBlur,
@@ -173,11 +177,25 @@ const CheckboxGroupInput: FunctionComponent<
         [finalFormOnChange, finalFormOnBlur, value]
     );
 
+    if (loading) {
+        return (
+            <Labeled
+                label={label}
+                source={source}
+                resource={resource}
+                className={className}
+                isRequired={isRequired}
+            >
+                <LinearProgress />
+            </Labeled>
+        );
+    }
+
     return (
         <FormControl
             component="fieldset"
             margin={margin}
-            error={touched && !!error}
+            error={touched && !!(error || submitError)}
             className={classnames(classes.root, className)}
             {...sanitizeRestProps(rest)}
         >
@@ -207,7 +225,7 @@ const CheckboxGroupInput: FunctionComponent<
             <FormHelperText>
                 <InputHelperText
                     touched={touched}
-                    error={error}
+                    error={error || submitError}
                     helperText={helperText}
                 />
             </FormHelperText>

@@ -1,12 +1,10 @@
 import expect from 'expect';
 import * as React from 'react';
-import { render, cleanup } from '@testing-library/react';
+import { render } from '@testing-library/react';
 
 import { DatagridHeaderCell } from './DatagridHeaderCell';
 
 describe('<DatagridHeaderCell />', () => {
-    afterEach(cleanup);
-
     it('should accept a React element as Field label', () => {
         const Label = () => <>Label</>;
         const Field = () => <div />;
@@ -103,7 +101,7 @@ describe('<DatagridHeaderCell />', () => {
             expect(getByTitle('ra.action.sort').dataset.order).toBe('ASC');
         });
 
-        it('should be disabled when field has no sortby and no source', () => {
+        it('should be disabled when field has no sortBy and no source', () => {
             const { queryAllByTitle } = render(
                 <table>
                     <tbody>

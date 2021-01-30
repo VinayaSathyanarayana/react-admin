@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { render, cleanup, fireEvent } from '@testing-library/react';
+import { render, fireEvent } from '@testing-library/react';
 import { Form } from 'react-final-form';
 import { TestTranslationProvider } from 'ra-core';
 
@@ -7,8 +7,6 @@ import SelectInput from './SelectInput';
 import { required } from 'ra-core';
 
 describe('<SelectInput />', () => {
-    afterEach(cleanup);
-
     const defaultProps = {
         source: 'language',
         resource: 'posts',
@@ -365,7 +363,7 @@ describe('<SelectInput />', () => {
         expect(option2.getAttribute('data-value')).toEqual('rea');
     });
 
-    it('should displayed helperText if prop is present', () => {
+    it('should display helperText if prop is present', () => {
         const { getByText } = render(
             <Form
                 onSubmit={jest.fn()}
@@ -448,5 +446,66 @@ describe('<SelectInput />', () => {
             const error = getByText('ra.validation.required');
             expect(error).not.toBeNull();
         });
+    });
+
+    // TODO: restore once master has been merged back to next
+    it.skip('should not render a LinearProgress if loading is true and a second has not passed yet', () => {
+        const { queryByRole } = render(
+            <Form
+                validateOnBlur
+                onSubmit={jest.fn()}
+                render={() => (
+                    <SelectInput
+                        {...{
+                            ...defaultProps,
+                            loaded: true,
+                            loading: true,
+                        }}
+                    />
+                )}
+            />
+        );
+
+        expect(queryByRole('progressbar')).toBeNull();
+    });
+
+    it('should render a LinearProgress if loading is true and a second has passed', async () => {
+        const { queryByRole } = render(
+            <Form
+                validateOnBlur
+                onSubmit={jest.fn()}
+                render={() => (
+                    <SelectInput
+                        {...{
+                            ...defaultProps,
+                            loaded: true,
+                            loading: true,
+                        }}
+                    />
+                )}
+            />
+        );
+
+        await new Promise(resolve => setTimeout(resolve, 1001));
+
+        expect(queryByRole('progressbar')).not.toBeNull();
+    });
+
+    it('should not render a LinearProgress if loading is false', () => {
+        const { queryByRole } = render(
+            <Form
+                validateOnBlur
+                onSubmit={jest.fn()}
+                render={() => (
+                    <SelectInput
+                        {...{
+                            ...defaultProps,
+                        }}
+                    />
+                )}
+            />
+        );
+
+        expect(queryByRole('progressbar')).toBeNull();
     });
 });
